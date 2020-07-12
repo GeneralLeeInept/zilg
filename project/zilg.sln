@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30204.135
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{5F4F6B3F-3292-4A0D-A3EE-2DCAE2CF1155}") = "zilg", "zilg.vcxproj", "{C2CF38A7-1DE2-4E85-9449-0433FD9ACC1E}"
+EndProject
+Project("{2A9ABBBC-3E1C-4E6D-9C2E-7ADF3AF22902}") = "fontgen", "..\tools\fontgen\project\fontgen.vcxproj", "{5D156C02-4D05-4352-8DD9-C8FEAA22E410}"
+EndProject
+Project("{F29549AC-4F10-4528-9BD6-7D7B8F2B807A}") = "bin2h", "..\tools\bin2h\project\bin2h.vcxproj", "{36A9E5E3-8E3D-47CC-B833-2D17065D1F77}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C2CF38A7-1DE2-4E85-9449-0433FD9ACC1E}.Debug|x64.ActiveCfg = Debug|x64
+		{C2CF38A7-1DE2-4E85-9449-0433FD9ACC1E}.Debug|x64.Build.0 = Debug|x64
+		{C2CF38A7-1DE2-4E85-9449-0433FD9ACC1E}.Release|x64.ActiveCfg = Release|x64
+		{C2CF38A7-1DE2-4E85-9449-0433FD9ACC1E}.Release|x64.Build.0 = Release|x64
+		{5D156C02-4D05-4352-8DD9-C8FEAA22E410}.Debug|x64.ActiveCfg = Debug|x64
+		{5D156C02-4D05-4352-8DD9-C8FEAA22E410}.Debug|x64.Build.0 = Debug|x64
+		{5D156C02-4D05-4352-8DD9-C8FEAA22E410}.Release|x64.ActiveCfg = Release|x64
+		{5D156C02-4D05-4352-8DD9-C8FEAA22E410}.Release|x64.Build.0 = Release|x64
+		{36A9E5E3-8E3D-47CC-B833-2D17065D1F77}.Debug|x64.ActiveCfg = Debug|x64
+		{36A9E5E3-8E3D-47CC-B833-2D17065D1F77}.Debug|x64.Build.0 = Debug|x64
+		{36A9E5E3-8E3D-47CC-B833-2D17065D1F77}.Release|x64.ActiveCfg = Release|x64
+		{36A9E5E3-8E3D-47CC-B833-2D17065D1F77}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {90950EC0-C045-475C-BF66-6081590F6A19}
+	EndGlobalSection
+EndGlobal
