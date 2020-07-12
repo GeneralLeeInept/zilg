@@ -75,6 +75,7 @@
     <ClInclude Include="..\extern\zlib\zconf.h" />
     <ClInclude Include="..\extern\zlib\zlib.h" />
     <ClInclude Include="..\extern\zlib\zutil.h" />
+    <ClInclude Include="..\src\gli_file.h" />
     <ClInclude Include="..\src\log.h" />
     <ClInclude Include="..\src\vgfw.h" />
     <ClInclude Include="..\src\zmachine.h" />
@@ -114,6 +115,9 @@
     <ClCompile Include="..\extern\zlib\trees.c" />
     <ClCompile Include="..\extern\zlib\uncompr.c" />
     <ClCompile Include="..\extern\zlib\zutil.c" />
+    <ClCompile Include="..\src\gli_file.cpp">
+      <AdditionalIncludeDirectories>..\extern\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
     <ClCompile Include="..\src\log.cpp" />
     <ClCompile Include="..\src\zilg.cpp" />
     <ClCompile Include="..\src\zmachine.cpp" />

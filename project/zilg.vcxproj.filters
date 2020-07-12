@@ -78,6 +78,9 @@
     <ClInclude Include="..\extern\zlib\contrib\minizip\zip.h">
       <Filter>zlib\minzip</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\gli_file.h">
+      <Filter>inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\log.cpp">
@@ -145,6 +148,9 @@
     </ClCompile>
     <ClCompile Include="..\extern\zlib\contrib\minizip\zip.c">
       <Filter>zlib\minzip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gli_file.cpp">
+      <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
