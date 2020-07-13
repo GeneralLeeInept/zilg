@@ -15,7 +15,7 @@
 GliFileSystem gFileSystem;
 
 
-void swap_endian(ZStoryHeader& header)
+static void swap_endian(ZMachineHeader& header)
 {
     header.release_number = swap_endian(header.release_number);
     header.high_mem_base = swap_endian(header.high_mem_base);
@@ -40,7 +40,7 @@ void swap_endian(ZStoryHeader& header)
 }
 
 
-void dump_header(ZStoryHeader& header)
+void dump_header(ZMachineHeader& header)
 {
     logf("Version: %d\n", header.version);
     logf("Interpreter flags: %X\n", header.interpreter_flags);
@@ -58,7 +58,17 @@ void dump_header(ZStoryHeader& header)
 
 
 std::vector<uint8_t> story_data;
-ZStoryHeader g_header{};
+ZMachineHeader g_header{};
+
+
+#define ORDERED_DISASSEMBLY
+//#define VERBOSE
+
+#ifdef VERBOSE
+#define VLOG    logf
+#else
+#define VLOG(...) ((void)0)
+#endif
 
 void disassemble(uint16_t start_address)
 {
@@ -196,7 +206,7 @@ void disassemble(uint16_t start_address)
         uint16_t address = address_queue.front();
         address_queue.pop_front();
 
-        logf("Popped address %04X...\n", address);
+        VLOG("Popped address %04X...\n", address);
 
         for (bool cont = true; cont;)
         {
@@ -229,7 +239,7 @@ void disassemble(uint16_t start_address)
             uint16_t pc = address;
             uint8_t opcode = story_data[address++];
 
-            logf("    Disassembling instruction %d @ %04X...\n", opcode, pc);
+            VLOG("    Disassembling instruction %d @ %04X...\n", opcode, pc);
 
             if (opcode == 0xBE)
             {
@@ -240,8 +250,8 @@ void disassemble(uint16_t start_address)
                 // 0x00..0x7F - 2OP  (0 m m o o o o o)
                 instruction.opcode = opcode & 0x1F;
                 instruction.operand_count = 2;
-                instruction.operand_types[0] = (opcode >> 6) & 1;
-                instruction.operand_types[1] = (opcode >> 5) & 1;
+                instruction.operand_types[0] = 1 + ((opcode >> 6) & 1);
+                instruction.operand_types[1] = 1 + ((opcode >> 5) & 1);
             }
             else if (opcode < 0xB0)
             {
@@ -315,6 +325,13 @@ void disassemble(uint16_t start_address)
 
             switch (instruction.opcode)
             {
+                // branch with predicate and store result
+                case 0x81:
+                case 0x82:
+                {
+                    // Skip store byte and fall through
+                    address++;
+                }
                 // branch with predicate
                 case 0x01:
                 case 0x02:
@@ -325,8 +342,6 @@ void disassemble(uint16_t start_address)
                 case 0x07:
                 case 0x0A:
                 case 0x80:
-                case 0x81:
-                case 0x82:
                 case 0xB5:
                 case 0xB6:
                 case 0xBD:
@@ -353,12 +368,7 @@ void disassemble(uint16_t start_address)
                         int16_t loc = offset;
                         uint16_t destination = address + loc - 2;
                         address_queue.push_back(destination);
-                        logf("        (PRED) Pushed address %04X\n", destination);
-                    }
-                    else
-                    {
-                        // Skip store byte
-                        ++address;
+                        VLOG("        (PRED) Pushed address %04X\n", destination);
                     }
 
                     break;
@@ -370,7 +380,7 @@ void disassemble(uint16_t start_address)
                     int16_t loc = instruction.operands[0];
                     uint16_t destination = address + loc - 2;
                     address_queue.push_back(destination);
-                    logf("        (JUMP) Pushed address %04X\n", destination);
+                    VLOG("        (JUMP) Pushed address %04X\n", destination);
                     cont = false;
                     break;
                 }
@@ -381,10 +391,6 @@ void disassemble(uint16_t start_address)
                 case 0x88:
                 case 0xE0:
                 case 0xEC:
-                {
-                    // Skip return byte and fall through to ICALL flavors
-                    ++address;
-                }
                 case 0xF9:
                 case 0xFA:
                 {
@@ -399,8 +405,12 @@ void disassemble(uint16_t start_address)
                         destination += locals_count << 1;
 
                         address_queue.push_back(destination);
-                        logf("        (CALL) Pushed address %04X\n", destination);
+                        VLOG("        (CALL) Pushed address %04X\n", destination);
                     }
+
+                    // Skip return byte and fall through to ICALL flavors
+                    ++address;
+
                     break;
                 }
 
@@ -421,8 +431,29 @@ void disassemble(uint16_t start_address)
                 case 0x84:
                 case 0x8E:
                 case 0x8F:
+                case 0xE7:
                 {
                     ++address;
+                    break;
+                }
+
+                // String literals
+                case 0xB2:
+                case 0xB3:
+                {
+                    // The final triplet in a literal string has the high bit set
+                    for (uint16_t triplet = 0; (triplet & 0x8000) == 0;)
+                    {
+                        uint8_t msb = story_data[address++];
+                        uint8_t lsb = story_data[address++];
+                        triplet = make_word(msb, lsb);
+                    }
+
+                    if (instruction.opcode == 0xB3)
+                    {
+                        cont = false;
+                    }
+
                     break;
                 }
 
@@ -442,8 +473,14 @@ void disassemble(uint16_t start_address)
         }
     }
 
+#ifdef ORDERED_DISASSEMBLY
+    for (const auto& entry : ordered_disassembly)
+    {
+        ZInstruction instruction = disassembly[entry.second];
+#else
     for (const auto& instruction : disassembly)
     {
+#endif
         int buflen = 0;
 
         auto it = opcode_names.find(instruction.opcode);
@@ -474,13 +511,15 @@ void disassemble(uint16_t start_address)
 }
 
 
+ZMachine zm;
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow)
 {
     gFileSystem.read_entire_file("//zork1.zip//DATA/ZORK1.DAT", story_data);
-    memcpy(&g_header, story_data.data(), sizeof(ZStoryHeader));
-    swap_endian(g_header);
-    dump_header(g_header);
-    disassemble(g_header.initial_pc);
+    zm.load(story_data);
+
+    for (;;)
+        zm.update();
 
     return 0;
 }
