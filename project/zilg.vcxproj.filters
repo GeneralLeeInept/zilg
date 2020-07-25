@@ -158,4 +158,9 @@
       <Filter>res</Filter>
     </CustomBuild>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\res\vga9_scanlines.png">
+      <Filter>res</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <deque>
+#include <memory>
+#include <sstream>
 #include <unordered_map>
 #include <vector>
 
@@ -121,15 +124,40 @@ inline uint8_t hi(uint16_t word)
 }
 
 
-inline uint16_t make_word(uint8_t hi, uint8_t lo)
+inline uint16_t make_word(uint8_t msb, uint8_t lsb)
 {
-    return (hi << 8) | lo;
+    return (msb << 8) | lsb;
+}
+
+
+inline uint16_t lo(uint32_t address)
+{
+    return (address & 0xFFFF);
+}
+
+
+inline uint16_t hi(uint32_t address)
+{
+    return (address >> 16);
+}
+
+
+inline uint32_t make_address(uint16_t msw, uint16_t lsw)
+{
+    return (msw << 16) | lsw;
 }
 
 
 class ZMachine
 {
 public:
+    enum class State : int
+    {
+        Crashed = -1,
+        Running,
+        InputRequested
+    };
+
     enum OperandTypes
     {
         OpImm16,
@@ -147,6 +175,7 @@ public:
 
     using InstructionHandler = void (ZMachine::*)(ZInstruction&);
     using InstructionHandlers = std::unordered_map<uint16_t, InstructionHandler>;
+    using InstructionMnemonics = std::unordered_map<uint16_t, const char*>;
 
     struct ObjectTraits
     {
@@ -159,31 +188,39 @@ public:
     struct Traits
     {
         InstructionHandlers instruction_handlers;
-        uint8_t function_address_scale;
+        InstructionMnemonics instruction_mnemonics;
+        uint8_t paddr_offset_scale;
+        uint8_t paddr_base_scale;
+        uint8_t dictionary_word_length; // Number of 16-bit words stored for each word in dictionary
         ObjectTraits object_traits;
     };
 
     ZMachine() = default;
+    ~ZMachine();
 
     bool load(std::vector<uint8_t>& story_file);
     void reset();
+    State state() { return _current_state; }
 
-    void update();
+    State update();
+
+    const std::vector<std::string>& transcript() { return _transcript; }
+    void input(const std::string& user_input);
 
     // Read and write memory
-    uint8_t read(uint16_t addr);
-    void write(uint16_t addr, uint8_t byte);
+    uint8_t read(uint32_t addr);
+    void write(uint32_t addr, uint8_t byte);
 
-    uint16_t readw(uint16_t addr);
-    void writew(uint16_t addr, uint16_t word);
+    uint16_t readw(uint32_t addr);
+    void writew(uint32_t addr, uint16_t word);
 
-    uint8_t read_table(uint16_t addr, uint16_t index);
-    void write_table(uint16_t addr, uint16_t index, uint8_t byte);
+    uint8_t read_table(uint32_t addr, uint16_t index);
+    void write_table(uint32_t addr, uint16_t index, uint8_t byte);
 
-    uint16_t read_tablew(uint16_t addr, uint16_t index);
-    void write_tablew(uint16_t addr, uint16_t index, uint16_t word);
+    uint16_t read_tablew(uint32_t addr, uint16_t index);
+    void write_tablew(uint32_t addr, uint16_t index, uint16_t word);
 
-    uint16_t read_string(uint16_t addr, std::vector<char>& str, bool terminate);
+    uint16_t read_string(uint32_t addr, std::vector<char>& str, bool terminate);
 
     // Read and write variables
     uint16_t readv(uint8_t var);
@@ -192,6 +229,9 @@ public:
     // Stack operations
     void push(uint16_t value);
     uint16_t pop();
+
+    void pusha(uint32_t address);
+    uint32_t popa();
 
     void push_stack_frame();
     void pop_stack_frame();
@@ -213,20 +253,23 @@ public:
 
     void get_object_short_name(uint16_t object_index, std::vector<char>& str);
 
-    bool get_prop_addr(uint16_t object_index, uint8_t property_index, uint16_t& prop_addr, uint8_t& prop_size);
+    uint16_t get_prop_addr(uint16_t object_index, uint8_t property_index);
     uint8_t get_prop_len(uint16_t prop_addr);
+    uint8_t get_prop_index(uint16_t prop_addr);
 
     uint16_t get_prop(uint16_t object_index, uint8_t property_index);
     void put_prop(uint16_t object_index, uint8_t property_index, uint16_t value);
 
-    void dump_objects();
-    void dump_object(uint16_t obj, uint8_t level);
+    uint8_t get_next_prop_index(uint16_t object_index, uint8_t property_index);
 
     // Miscellaneous
     void store_result(uint16_t value);
     void apply_predicate(bool test);
     void ret(uint16_t result);
     bool zscii_to_ascii(char& ascii_code, uint16_t zscii_code, bool for_output);
+    const char* mnemonic(uint16_t opcode);
+    uint32_t unpack_paddr(uint16_t paddr, bool string);
+    void parse(uint16_t text_buffer, uint16_t parse_buffer);
 
     // 2OP Instruction handlers
     void _je(ZInstruction&);
@@ -342,11 +385,22 @@ public:
     void _check_arg_count_5(ZInstruction&);
 
 private:
-    Traits _traits;
-    uint8_t _memory[64 * 1024];
+    Traits _traits{};
+    uint8_t* _memory = nullptr;
+    uint32_t _memory_size = 0;
     uint16_t _stack[64 * 1024];
-    ZMachineHeader _header;
-    uint16_t _pc;
-    uint16_t _sp;
-    uint16_t _locals_base;
+    ZMachineHeader _header{};
+    uint32_t _pc{};
+    uint32_t _resume_pc{};
+    uint16_t _sp{};
+    uint16_t _locals_base{};
+    State _current_state = State::Crashed;
+    std::stringstream _linebuffer{};
+    std::vector<std::string> _transcript{};
+    std::deque<std::string> _user_input{};
+    uint16_t _random_state{};
+
+    void flush_line();
+    void crash(const char* format, ...);
+    void set_state(State state);
 };

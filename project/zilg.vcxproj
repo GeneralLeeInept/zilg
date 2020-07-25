@@ -125,7 +125,7 @@
   <ItemGroup>
     <CustomBuild Include="..\res\vga9.png">
       <Command>_builds\fontgen\$(Configuration)\bin\fontgen.exe -o ..\src\vga9.h -n vga9 %(Identity)</Command>
-      <Message>Generating VGA9 font</Message>
+      <Message>Generating vga9 font</Message>
       <Outputs>..\src\vga9.h</Outputs>
       <OutputItemType>ClInclude</OutputItemType>
       <AdditionalInputs>_builds\fontgen\$(Configuration)\bin\fontgen.exe</AdditionalInputs>

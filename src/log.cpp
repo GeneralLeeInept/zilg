@@ -1,7 +1,6 @@
 #include "log.h"
 
 #include <vector>
-#include <cstdarg>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -10,12 +9,21 @@
 
 void logf(const char* format, ...)
 {
-    static constexpr int log_buffer_size = 256;
-    static char log_buffer[log_buffer_size];
     std::va_list args;
     va_start(args, format);
-    int len = std::vsnprintf(log_buffer, log_buffer_size, format, args);
+    logv(format, args);
     va_end(args);
+}
+
+
+void logv(const char* format, va_list args)
+{
+    static constexpr int log_buffer_size = 256;
+    static char log_buffer[log_buffer_size];
+    std::va_list args_copy;
+    va_copy(args_copy, args);
+    int len = std::vsnprintf(log_buffer, log_buffer_size, format, args);
+    va_end(args_copy);
 
     if (len < (log_buffer_size - 1))
     {
@@ -24,7 +32,9 @@ void logf(const char* format, ...)
     else
     {
         std::vector<char> buffer(len + 1);
+        va_copy(args_copy, args);
         std::vsnprintf(buffer.data(), buffer.size(), format, args);
+        va_end(args_copy);
         logm(buffer.data());
     }
 }
